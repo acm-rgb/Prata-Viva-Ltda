@@ -1,0 +1,16 @@
+codigo,descricao_padrao,categoria,custo_unitario,preco_venda,margem_percentual,estoque_atual,estoque_minimo,unidade,fornecedor_principal
+P001,Detergente Neutro 500ml,Limpeza,"R$ 1,90","R$ 3,50","45,7",320,100,un,Distribuidora Norte
+P002,Agua Sanitaria 1L,Limpeza,"2,10","R$ 4,20","50,0",480,150,UN,Distribuidora Norte
+P003,Sabão em Pó 1kg,Limpeza,"R$ 7,80","R$ 12,90","39,5",210,80,un,Distribuidora Sul
+P004,Desinfetante Pinho 500ml,Limpeza,"R$ 3,20","R$ 5,80","44,8",175,60,Unid.,Distribuidora Norte
+P005,Esponja de Aço c/8,Utilidades,"1,10","2,10","47,6",540,200,un,Distribuidora Sul
+P006,Esponja Dupla Face,Utilidades,"R$ 0,90","R$ 1,80","50,0",390,150,UN,Distribuidora Sul
+P007,Pano de Chão 60x80,Utilidades,,"R$ 7,90",,220,80,un,Fornecedor Local
+P008,Luva de Borracha M,EPI,"R$ 4,20","R$ 8,50","50,6",145,50,par,Distribuidora Norte
+P009,Luva de Borracha G,EPI,"4,20","R$ 8,50","50,6",-3,50,par,Distribuidora Norte
+P010,Álcool 70% 1L,Limpeza,,"R$ 9,90",,95,40,UN,Distribuidora Sul
+P011,Rodo 60cm,Utilidades,"R$ 4,50","R$ 8,90","49,4",88,30,un,Fornecedor Local
+P012,Vassoura Gari,Utilidades,"R$ 5,20","R$ 9,80","52,0",72,30,Unid.,Fornecedor Local
+P013,Balde 10L,Utilidades,"R$ 6,80","R$ 11,50","40,9",60,25,un,Distribuidora Sul
+P014,Lustra Móveis 200ml,Limpeza,"R$ 3,10","R$ 6,50","52,3",130,50,UN,Distribuidora Norte
+P015,Amaciante 2L,Limpeza,"R$ 5,40","R$ 8,90","39,3",195,70,un,Distribuidora Norte

@@ -1,0 +1,51 @@
+id_venda,data,produto,categoria,quantidade,valor_unitario,valor_total,forma_pagamento,id_cliente
+1,03/01/2025,Detergente Neutro 500ml,Limpeza,10,"R$ 3,50","R$ 35,00",PIX,C001
+2,05/01/2025,Agua Sanitaria 1L,Limpeza,24,"R$ 4,20","R$ 100,80",boleto,C002
+3,07/01/2025,sabao em po 1kg,Limpeza,15,"R$ 12,90","R$ 193,50",Cartão,C003
+4,2025-01-09,Desinfetante Pinho 500ml,Limpeza,8,"R$ 5,80","R$ 46,40",pix,C001
+5,10/01/2025,Esponja de Aço c/8,Utilidades,30,"R$ 2,10","R$ 63,00",Dinheiro,C004
+6,12-01-2025,Detergente Neutro 500ml,Limpeza,20,"R$ 3,50","R$ 70,00",PIX,C005
+7,15/01/2025,Sabão em Pó 1Kg,Limpeza,12,"12,90","R$ 154,80",boleto,C002
+8,17/01/2025,Luva de Borracha M,EPI,6,"R$ 8,50","R$ 51,00",Cartão Débito,C006
+9,20/01/2025,agua sanitaria 1l,Limpeza,36,"4,20","151,20",PIX,C003
+10,22/01/2025,Pano de Chão 60x80,Utilidades,15,"R$ 7,90","R$ 118,50",Dinheiro,C007
+11,24/01/2025,Deterg. Neutro 500ml,Limpeza,10,"R$ 3,50","R$ 35,00",PIX,C001
+12,27/01/2025,Esponja Dupla Face,Utilidades,25,"R$ 1,80","R$ 45,00",boleto,C008
+13,29/01/2025,Luva Borracha M,EPI,4,"R$ 8,50","R$ 34,00",PIX,C009
+14,31/01/2025,Sabão em Pó 1KG,Limpeza,20,"R$ 12,90","R$ 258,00",Cartão,C010
+15,03/02/2025,Detergente Neutro 500ml,Limpeza,18,"R$ 3,50","R$ 63,00",PIX,C002
+16,05/02/2025,Agua Sanitaria 1L,Limpeza,30,"R$ 4,20","R$ 126,00",boleto,C001
+17,07/02/2025,Pano de chão 60x80,Utilidades,10,"R$ 7,90","R$ 79,00",Dinheiro,C004
+18,2025-02-10,Esponja de Aço c/8,Utilidades,50,"R$ 2,10","R$ 105,00",PIX,C005
+19,12/02/2025,Luva de Borracha M,EPI,8,"R$ 8,50","R$ 68,00",Cartão,C006
+20,14/02/2025,desinfetante pinho 500ml,Limpeza,12,"R$ 5,80","R$ 69,60",pix,C003
+21,17/02/2025,Sabão Pó 1kg,Limpeza,25,"R$ 12,90","R$ 322,50",boleto,C007
+22,19/02/2025,Detergente Neutro 500ml,Limpeza,0,"R$ 3,50","R$ 0,00",PIX,C008
+23,21/02/2025,Esponja Dupla Face,Utilidades,40,"R$ 1,80","R$ 72,00",Dinheiro,C009
+24,24/02/2025,Agua Sanitaria 1L,Limpeza,18,"R$ 4,20","R$ 75,60",PIX,C010
+25,26/02/2025,Pano de Chão 60x80,Utilidades,20,"R$ 7,90","R$ 158,00",Cartão,C001
+26,28/02/2025,DETERGENTE NEUTRO 500ML,Limpeza,15,"R$ 3,50","R$ 52,50",boleto,C002
+27,03/03/2025,Sabão em Pó 1kg,Limpeza,30,"R$ 12,90","R$ 387,00",PIX,C003
+28,05/03/2025,Luva de Borracha M,EPI,10,"R$ 8,50","R$ 85,00",Cartão,C004
+29,07/03/2025,Desinfetante Pinho 500ml,Limpeza,20,"R$ 5,80","R$ 116,00",Dinheiro,C005
+30,10/03/2025,Agua Sanitaria 1L,Limpeza,24,"R$ 4,20","R$ 100,80",PIX,C006
+31,12/03/2025,Esponja de Aço c/8,Utilidades,35,"R$ 2,10","R$ 73,50",boleto,C007
+32,14/03/2025,Pano de Chão 60x80,Utilidades,12,"R$ 7,90","R$ 94,80",Cartão,C008
+33,17/03/2025,Detergente Neutro 500ml,Limpeza,22,"R$ 3,50","R$ 77,00",PIX,C009
+34,19/03/2025,Sabão em Pó 1kg,Limpeza,18,"R$ 12,90","R$ 232,20",Dinheiro,C010
+35,21/03/2025,Luva Borracha Media,EPI,6,"R$ 8,50","R$ 51,00",PIX,C001
+36,24/03/2025,agua sanitaria 1 litro,Limpeza,40,"R$ 4,20","R$ 168,00",boleto,C002
+37,26/03/2025,Esponja Dupla Face,Utilidades,30,"R$ 1,80","R$ 54,00",Cartão,C003
+38,28/03/2025,Desinfetante Pinho 500ml,Limpeza,14,"R$ 5,80","R$ 81,20",PIX,C004
+39,31/03/2025,Sabão em Pó 1KG,Limpeza,22,"R$ 12,90","R$ 283,80",Dinheiro,C005
+40,31/03/2025,Sabão em Pó 1KG,Limpeza,22,"R$ 12,90","R$ 283,80",Dinheiro,C005
+41,02/04/2025,Detergente Neutro 500ml,Limpeza,16,"R$ 3,80","R$ 60,80",PIX,C006
+42,04/04/2025,Pano de Chão 60x80,Utilidades,18,"R$ 7,90","R$ 142,20",boleto,C007
+43,07/04/2025,Luva de Borracha M,EPI,12,"R$ 9,00","R$ 108,00",Cartão,C008
+44,09/04/2025,Agua Sanitaria 1L,Limpeza,28,"R$ 4,50","R$ 126,00",PIX,C009
+45,11/04/2025,sabão pó 1kg,Limpeza,20,"R$ 13,50","R$ 270,00",Dinheiro,C010
+46,14/04/2025,Esponja de Aço c/8,Utilidades,40,"R$ 2,20","R$ 88,00",PIX,C001
+47,16/04/2025,Desinfetante Pinho 500ml,,10,"R$ 5,80","R$ 58,00",boleto,C002
+48,18/04/2025,Esponja Dupla Face,Utilidades,35,"R$ 1,90","R$ 66,50",Cartão,C003
+49,99/04/2025,Detergente Neutro 500ml,Limpeza,10,"R$ 3,80","R$ 38,00",PIX,C004
+50,23/04/2025,Sabão em Pó 1kg,Limpeza,25,"R$ 13,50","R$ 337,50",boleto,C005

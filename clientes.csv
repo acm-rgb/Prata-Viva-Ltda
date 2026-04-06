@@ -1,0 +1,16 @@
+id_cliente,razao_social,contato,telefone,email,cidade,segmento,data_cadastro,canal_origem
+C001,Mercadinho Bom Preço,João Silva,(16) 99123-4567,joao@bomprecao.com,Ribeirão Preto,varejo alimentar,05/01/2025,indicação
+C002,Distribuidora Irmãos Lima,Carlos Lima,16 98765-4321,,São Carlos,distribuição,2025-01-07,rede pessoal
+C003,Farmácia Popular,Ana Souza,16991234567,ana.souza@farmapopular.com.br,Araraquara,farmácia,10/01/2025,CDL
+C004,Restaurante Sabor Caseiro,Maria Costa,(16) 3344-5678,maria@saborcaseiro.com,Ribeirão Preto,alimentação,12/01/2025,indicação
+C005,Auto Peças Rodrigues,Pedro Rodrigues,1634456789,pedrorodrigues@gmail.com,São Carlos,auto peças,15/01/2025,instagram
+C006,Minimercado São Jorge,José Santos,(17) 99876-5432,,Barretos,varejo,20/01/2025,rede pessoal
+C007,Padaria Pão Quente,Fernanda Oliveira,17987654321,fernanda@paoq.com,Barretos,panificação / alimentos,24/01/2025,indicação
+C008,Material de Construção Rápido,Roberto Alves,(16) 99111-2222,roberto.alves@mcrrapido.com,Ribeirão Preto,construção,28/01/2025,CDL
+C009,Loja de Roupas Estilo,Camila Ferreira,16 99333-4444,camila@estilomodas.com,Araraquara,vestuário,03/02/2025,instagram
+C010,Posto Combustível Delta,Marcos Pereira,(16) 3456-7890,marcos@postodelta.com.br,São Carlos,combustíveis,07/02/2025,rede pessoal
+C011,Mercadinho Bom Preço,João Silva,(16) 99123-4567,joao@bomprecao.com,Ribeirão Preto - SP,varejo alimentar,05/01/2025,indicação
+C012,Hortifruti Campo Verde,Sônia Martins,17 98888-1111,sonia@campovrde.com,Franca,hortifruti,14/02/2025,CDL
+C013,Ótica Visão Clara,Antônio Gomes,(16) 3567-8901,,Ribeirão Preto,ótica,19/02/2025,indicação
+C014,Pet Shop Amigo Fiel,Luciana Rocha,16994445555,luciana@amigofiel.pet,São Carlos,pet shop,25/02/2025,instagram
+C015,Papelaria Universitária,Diego Castro,(16) 99222-3333,diego@papuniv.com,Araraquara,papelaria,04/03/2025,rede pessoal

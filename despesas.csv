@@ -1,0 +1,41 @@
+id_despesa,data,categoria,descricao,fornecedor,valor,forma_pagamento
+1,01/01/2025,Aluguel,Aluguel galpão janeiro,Imobiliária Central,"R$ 3.200,00",Transferência
+2,05/01/2025,Salários,Pagamento funcionários jan,,"R$ 4.800,00",Transferência
+3,07/01/2025,Energia,Conta de luz jan,CPFL,"R$ 620,50",Débito Automático
+4,10/01/2025,fornecedor,Compra mercadoria,Distribuidora Norte,"R$ 8.450,00",Boleto
+5,12/01/2025,Marketing,Impulsionamento Instagram,,150,PIX
+6,15/01/2025,Transporte,Frete entrega clientes,Transportadora JS,"R$ 380,00",PIX
+7,20/01/2025,Manutenção,Reparo empilhadeira,,"R$ 240,00",Dinheiro
+8,25/01/2025,Salários,13o proporcional jan,,"R$ 400,00",Transferência
+9,28/01/2025,fornecedores,NF compra estoque,Distribuidora Sul,"R$ 5.200,00",Boleto
+10,31/01/2025,Contabilidade,Honorários contador jan,Escritório Fiscal ABC,"R$ 550,00",PIX
+11,01/02/2025,aluguel,Aluguel galpão fevereiro,Imobiliária Central,3200,Transferência
+12,03/02/2025,Energia,,CPFL,"R$ 580,00",Débito Automático
+13,07/02/2025,Compras,Compra mercadoria fev,Distribuidora Norte,"R$ 9.100,00",Boleto
+14,10/02/2025,salario,Pagamento funcionários fev,,4800,Transferência
+15,14/02/2025,Marketing,,,"R$ 200,00",PIX
+16,18/02/2025,Transporte,Frete clientes fev,Transportadora JS,"R$ 420,00",PIX
+17,20/02/2025,Manutenção,Manutenção preventiva veículo,Auto Center Bom,"R$ 890,00",Cartão
+18,22/02/2025,Impostos,Simples Nacional fev,Receita Federal,"R$ 1.240,00",DAS
+19,28/02/2025,Contabilidade,Honorários contador fev,Escritório Fiscal ABC,"R$ 550,00",PIX
+20,28/02/2025,Compras,NF compra estoque fev,Distribuidora Sul,"R$ 4.800,00",Boleto
+21,01/03/2025,Aluguel,Aluguel março,Imobiliária Central,"R$ 3.200,00",Transferência
+22,05/03/2025,Salários,Pagamento funcionários mar,,"R$ 4.800,00",Transferência
+23,07/03/2025,energia elétrica,Conta luz março,CPFL,"R$ 710,00",Débito Automático
+24,10/03/2025,Compras,,Distribuidora Norte,"R$ 7.600,00",Boleto
+25,12/03/2025,Marketing,Panfletos,Gráfica Express,"R$ 320,00",PIX
+26,15/03/2025,Transporte,,Transportadora JS,"R$ 390,00",PIX
+27,18/03/2025,Impostos,Simples Nacional mar,Receita Federal,"R$ 1.380,00",DAS
+28,22/03/2025,Manutenção,,,"R$ 150,00",Dinheiro
+29,28/03/2025,Contabilidade,Honorários contador mar,Escritório Fiscal ABC,"R$ 550,00",PIX
+30,31/03/2025,compra,Reposição estoque,Distribuidora Sul,"R$ 6.300,00",Boleto
+31,01/04/2025,Aluguel,Aluguel abril,Imobiliária Central,"R$ 3.200,00",Transferência
+32,03/04/2025,Salários,Pagamento funcionários abr,,"R$ 4.800,00",Transferência
+33,05/04/2025,Energia,Conta luz abril,CPFL,"R$ 650,00",Débito Automático
+34,08/04/2025,Compras,Compra mercadoria abr,Distribuidora Norte,"R$ 8.900,00",Boleto
+35,10/04/2025,Marketing,Google Ads,,"R$ 250,00",Cartão
+36,14/04/2025,Transporte,Frete clientes abr,Transportadora JS,"R$ 410,00",PIX
+37,18/04/2025,Impostos,Simples Nacional abr,Receita Federal,"R$ 1.420,00",DAS
+38,20/04/2025,devolução,Devolução cobr. duplicada,Distribuidora Norte,"-R$ 480,00",Transferência
+39,25/04/2025,Manutenção,Troca pneu caminhonete,Auto Center Bom,"R$ 1.100,00",Cartão
+40,30/04/2025,Contabilidade,Honorários contador abr,Escritório Fiscal ABC,"R$ 550,00",PIX
