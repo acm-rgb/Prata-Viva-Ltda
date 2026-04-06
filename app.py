@@ -6,7 +6,7 @@ from patsy.state import center
 #----------------------------------------------------------------------------------------------------------------------#
 ####################################################### LAYOUT #########################################################
 #----------------------------------------------------------------------------------------------------------------------#
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide",page_icon='📈',page_title='Distribuidor Prata Viva Ltda')
 st.title('Vistto ETL',anchor='center',text_alignment='center')
 col1, col2, col3 = st.columns(3)
 
