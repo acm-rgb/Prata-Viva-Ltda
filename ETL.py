@@ -98,6 +98,35 @@ df_clientes_cleaning['data_cadastro'] = (
 )
 
 df_clientes_class = df_clientes_cleaning.merge(df_vendas, on='id_cliente', how='inner')
+
+#----------------------------------------------------------------------------------------------------------------------#
+# Ajustando tabela de despesas
+
+df_despesas_cleaning = df_despesas.copy()
+df_despesas_cleaning = (
+    df_despesas_cleaning.drop_duplicates(
+        subset=['data','categoria','descricao','fornecedor','valor'],
+        keep='first')
+)
+
+df_despesas_cleaning['descricao'] = df_despesas_cleaning['descricao'].fillna('Sem Descricao')
+df_despesas_cleaning['fornecedor'] = df_despesas_cleaning['fornecedor'].fillna('Sem Fornecedor')
+
+colunas_financeiras_despesas = ['valor']
+
+for coluna in colunas_financeiras_despesas:
+    df_despesas_cleaning[coluna] = (
+        df_despesas_cleaning[coluna]
+        .astype(str)
+        .str.replace('R\$','',regex=True)
+        .str.replace('.', '', regex=False)
+        .str.replace(',', '.', regex=False)
+        .str.replace('-', '', regex=False)
+        .str.strip()
+        .astype(float)
+    )
+df_despesas_cleaning['valor'] = df_despesas_cleaning['valor'].abs()
+df_despesas_cleaning['categoria'] = df_despesas_cleaning['categoria'].str.strip().str.title()
 #----------------------------------------------------------------------------------------------------------------------#
 ############################################# EXTRAÇÃO DE PARÂMETROS ###################################################
 #----------------------------------------------------------------------------------------------------------------------#
@@ -112,7 +141,12 @@ metric_qtdvendas.metric('Quantidade de Vendas', f'{QTD_Vendas}')
 #----------------------------------------------------------------------------------------------------------------------#
 ############################################# CRIAÇÃO DE GRÁFICOS ###################################################
 #----------------------------------------------------------------------------------------------------------------------#
+# Agrupando de acordo com interesse
 df_vendas = df_vendas.groupby(by='categoria')['valor_total'].sum().reset_index().sort_values(by='valor_total', ascending=False)
+df_despesas_cleaning = df_despesas_cleaning.groupby('categoria')['valor'].sum().reset_index().sort_values(by='valor', ascending=False)
+
+
+# Gerando gráfico Vendas
 vendas_por_categoria = (
     px.bar(
         df_vendas,
@@ -122,3 +156,14 @@ vendas_por_categoria = (
         )
 vendas_por_categoria.update_layout(title='Limpeza é líder em vendas',title_x=0.5,title_xanchor='center',title_font = dict(size=30))
 st.plotly_chart(vendas_por_categoria, use_container_width=True)
+
+# Gerando gráfico Despesas
+despesas_por_categoria = (
+    px.bar(
+        df_despesas_cleaning,
+        x = 'categoria',
+        y = 'valor',
+        labels={'categoria':'Categoria','valor':'Valor Total'})
+)
+despesas_por_categoria.update_layout(title='Compras tem a maior despesa seguida de salários',title_x=0.5,title_xanchor='center',title_font = dict(size=30))
+st.plotly_chart(despesas_por_categoria, use_container_width=True)
