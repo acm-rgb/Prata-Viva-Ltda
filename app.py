@@ -416,8 +416,6 @@ with aba1:
         title_font=dict(size=20),
         xaxis_title="",
         yaxis_title="",
-        plot_bgcolor="#F8F9FA",
-        paper_bgcolor="#F8F9FA",
     )
     st.plotly_chart(fig_cat, use_container_width=True)
 
@@ -478,7 +476,6 @@ with aba2:
         )
         fig_canal.update_layout(
             xaxis_title="", yaxis_title="", title_x=0.5,
-            plot_bgcolor="#F8F9FA", paper_bgcolor="#F8F9FA",
         )
         st.plotly_chart(fig_canal, use_container_width=True)
 
@@ -506,7 +503,6 @@ with aba2:
         )
         fig_ticket.update_layout(
             xaxis_title="", yaxis_title="", title_x=0.5,
-            plot_bgcolor="#F8F9FA", paper_bgcolor="#F8F9FA",
         )
         st.plotly_chart(fig_ticket, use_container_width=True)
 
@@ -575,8 +571,6 @@ with aba3:
     )
     fig_matriz.update_layout(
         title_x=0.5,
-        plot_bgcolor="#F8F9FA",
-        paper_bgcolor="#F8F9FA",
     )
     st.plotly_chart(fig_matriz, use_container_width=True)
 
@@ -665,8 +659,6 @@ with aba4:
             fig_fluxo.update_layout(
                 xaxis=dict(tickformat="%d/%m\n%Y"),
                 legend_title_text="",
-                plot_bgcolor="#F8F9FA",
-                paper_bgcolor="#F8F9FA",
             )
             st.plotly_chart(fig_fluxo, use_container_width=True)
         else:
@@ -692,8 +684,6 @@ with aba4:
             fig_rank.update_layout(
                 xaxis_title="", yaxis_title="",
                 xaxis=dict(showticklabels=False),
-                plot_bgcolor="#F8F9FA",
-                paper_bgcolor="#F8F9FA",
             )
             st.plotly_chart(fig_rank, use_container_width=True)
         else:
