@@ -6,7 +6,7 @@ import unicodedata
 
 import pandas as pd
 import streamlit as st
-import plotly.express as px  # FIX 1: era 'plotly_express' (módulo inexistente)
+import plotly.express as px
 
 # ======================================================================================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -17,8 +17,6 @@ st.title("Vistto ETL - Dashboard de Performance")
 
 # ======================================================================================================================
 # CONFIGURAÇÃO DE CAMINHOS
-# FIX 2: caminhos absolutos. Em produção (Streamlit Cloud), __file__ resolve para o diretório do script.
-# Em desenvolvimento local, troque BASE_DIR por r"C:\Users\andre\Documentos\Workspace\prata-viva"
 # ======================================================================================================================
 
 try:
@@ -183,28 +181,23 @@ dados_brutos = carregar_dados_brutos()
 @st.cache_data
 def transformar_dados(colecao: dict):
     """
-    Retorna: df_vendas, df_clientes, df_despesas, df_produtos, auditoria
+    Retorna: df_vendas, df_clientes, df_despesas, df_produtos
     Regra 7: cada coluna com política explícita de nulos — sem fillna() genérico.
-    Regra 8: auditoria completa ao final.
     """
-    auditoria = {}
 
     # ------------------------------------------------------------------------------------------------------------------
     # VENDAS
     # ------------------------------------------------------------------------------------------------------------------
     df_v = colecao["vendas"].copy()
-    auditoria["vendas_entrada"] = len(df_v)
 
     # FIX 4: remoção de duplicatas antes de qualquer transformação
     n_antes_dup = len(df_v)
     df_v = df_v.drop_duplicates(
         subset=["data", "produto", "quantidade", "valor_total", "id_cliente"]
     )
-    auditoria["vendas_duplicatas_removidas"] = n_antes_dup - len(df_v)
 
     # Regra 6: datas parseadas com tolerância a formatos mistos (BR e ISO)
     df_v["data"] = pd.to_datetime(df_v["data"], dayfirst=True, errors="coerce")
-    auditoria["vendas_datas_invalidas"] = int(df_v["data"].isna().sum())
 
     # Quantidade: numérico com política explícita para NaN → 0
     df_v["quantidade"] = pd.to_numeric(df_v["quantidade"], errors="coerce").fillna(0).astype(int)
@@ -216,7 +209,6 @@ def transformar_dados(colecao: dict):
     # Política explícita: remover linhas com valor zero (registros incompletos ou cancelamentos)
     n_antes_zero = len(df_v)
     df_v = df_v[df_v["valor_total_num"] > 0].copy()
-    auditoria["vendas_valor_zero_removidas"] = n_antes_zero - len(df_v)
 
     # Normalização para join com produtos
     df_v["produto_norm"] = normalizar_nome_produto(df_v["produto"])
@@ -233,12 +225,8 @@ def transformar_dados(colecao: dict):
     # Estoque: política explícita — registrar negativos ANTES de corrigir (não silenciar)
     df_p["estoque_atual"]  = pd.to_numeric(df_p["estoque_atual"],  errors="coerce").fillna(0)
     df_p["estoque_minimo"] = pd.to_numeric(df_p["estoque_minimo"], errors="coerce").fillna(0)
-    auditoria["produtos_estoque_negativo"] = int((df_p["estoque_atual"] < 0).sum())
     df_p["estoque_atual"]  = df_p["estoque_atual"].abs()
     df_p["estoque_minimo"] = df_p["estoque_minimo"].abs()
-
-    # Política para custo zero: limpar_moeda retorna 0.0 quando o campo é vazio
-    auditoria["produtos_sem_custo"] = int((df_p["custo_num"] == 0).sum())
 
     df_p["produto_norm"] = normalizar_nome_produto(df_p["descricao_padrao"])
     df_p = df_p.sort_values("margem_num", ascending=False)
@@ -247,7 +235,6 @@ def transformar_dados(colecao: dict):
     # CLIENTES
     # ------------------------------------------------------------------------------------------------------------------
     df_c = colecao["clientes"].copy()
-    auditoria["clientes_entrada"] = len(df_c)
 
     df_c["data_cadastro"] = pd.to_datetime(df_c["data_cadastro"], dayfirst=True, errors="coerce")
     df_c["canal_origem"]  = normalizar_texto(df_c["canal_origem"])
@@ -264,7 +251,6 @@ def transformar_dados(colecao: dict):
         .drop_duplicates(subset=["id_cliente"])
         .reset_index(drop=True)
     )
-    auditoria["clientes_duplicatas_removidas"] = n_antes_dup_c - len(df_c)
 
     # ------------------------------------------------------------------------------------------------------------------
     # DESPESAS
@@ -283,7 +269,6 @@ def transformar_dados(colecao: dict):
     cats_nao_mapeadas = df_d.loc[
         ~df_d["categoria_raw"].isin(MAPA_CATEGORIAS_DESPESA), "categoria_raw"
     ].unique().tolist()
-    auditoria["despesas_categorias_nao_mapeadas"] = cats_nao_mapeadas
 
     # ------------------------------------------------------------------------------------------------------------------
     # JOINS
@@ -297,7 +282,6 @@ def transformar_dados(colecao: dict):
     # FIX 7: custo NaN após join = produto não encontrado no cadastro → política explícita: NaN preservado
     # NÃO usar fillna(0) — zeraria o custo e inflaria o lucro bruto silenciosamente
     n_sem_join = int(df_v["custo_num"].isna().sum())
-    auditoria["vendas_sem_join_produto"] = n_sem_join
 
     # Vendas ↔ Clientes
     df_v = df_v.merge(
@@ -309,60 +293,9 @@ def transformar_dados(colecao: dict):
     df_v["custo_total_venda"] = df_v["quantidade"] * df_v["custo_num"]
     df_v["lucro_bruto_venda"] = df_v["valor_total_num"] - df_v["custo_total_venda"]
 
-    auditoria["vendas_saida"] = len(df_v)
+    return df_v, df_c, df_d, df_p
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # AUDITORIA FINAL — Regra 8
-    # ------------------------------------------------------------------------------------------------------------------
-    auditoria["resumo_linhas"] = {
-        "Vendas"  : (
-            f"{auditoria['vendas_entrada']} registros de entrada | "
-            f"{auditoria['vendas_duplicatas_removidas']} duplicatas removidas | "
-            f"{auditoria['vendas_datas_invalidas']} datas inválidas (NaT) | "
-            f"{auditoria['vendas_valor_zero_removidas']} com valor zero removidas | "
-            f"{auditoria['vendas_sem_join_produto']} sem custo no cadastro de produtos"
-        ),
-        "Clientes": (
-            f"{auditoria['clientes_entrada']} registros de entrada | "
-            f"{auditoria['clientes_duplicatas_removidas']} duplicatas removidas"
-        ),
-        "Produtos": (
-            f"{auditoria['produtos_sem_custo']} sem custo cadastrado | "
-            f"{auditoria['produtos_estoque_negativo']} com estoque negativo (corrigido para positivo)"
-        ),
-        "Despesas": (
-            f"Categorias não mapeadas: {auditoria['despesas_categorias_nao_mapeadas'] or 'nenhuma'}"
-        ),
-    }
-
-    return df_v, df_c, df_d, df_p, auditoria
-
-
-df_vendas, df_clientes, df_despesas, df_produtos, auditoria_etl = transformar_dados(dados_brutos)
-
-
-# ======================================================================================================================
-# ALERTA DE QUALIDADE DOS DADOS (fixado no topo, antes das abas)
-# Regra 8: o resumo da auditoria precisa ser visível, não escondido num log
-# ======================================================================================================================
-
-n_problemas = (
-    auditoria_etl["vendas_duplicatas_removidas"]
-    + auditoria_etl["vendas_datas_invalidas"]
-    + auditoria_etl["vendas_sem_join_produto"]
-    + auditoria_etl["produtos_sem_custo"]
-)
-
-if n_problemas > 0:
-    with st.expander(f"⚠️ Auditoria ETL — {n_problemas} ocorrências detectadas nos dados", expanded=False):
-        for tabela, msg in auditoria_etl["resumo_linhas"].items():
-            st.markdown(f"**{tabela}:** {msg}")
-        if auditoria_etl["vendas_sem_join_produto"] > 0:
-            st.warning(
-                "Atenção: linhas sem custo de produto não entram no cálculo de Lucro Bruto. "
-                "Verifique se todos os produtos de vendas.csv estão cadastrados em produtos.csv."
-            )
-
+df_vendas, df_clientes, df_despesas, df_produtos = transformar_dados(dados_brutos)
 
 # ======================================================================================================================
 # CARGA / DASHBOARD — 4 ABAS
