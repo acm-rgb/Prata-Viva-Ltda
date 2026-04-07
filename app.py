@@ -409,7 +409,7 @@ with aba_financeiro:
         coluna_fin_3.metric(
             "Saldo Operacional (EBITDA Aproximado)",
             f"R$ {saldo_operacional_periodo:,.2f}",
-            delta="Positivo" if saldo_operacional_periodo > 0 else "Negativo"
+            delta="Positivo" if saldo_operacional_periodo >= 0 else " - Negativo"
         )
 
     with st.container(border=True):
