@@ -8,23 +8,45 @@ import streamlit as st
 import plotly.express as px
 
 # ======================================================================================================================
-# CONFIGURAÇÃO DA PÁGINA E CSS
+# CONFIGURAÇÃO DA PÁGINA E CSS (ADAPTÁVEL PARA MODO CLARO E ESCURO)
 # ======================================================================================================================
 st.set_page_config(layout="wide", page_icon="📈", page_title="Vistto - Inteligência de Negócios")
 
 st.markdown("""
     <style>
-    [data-testid="stMetricValue"] { font-size: 28px; color: #2ca02c; font-weight: bold; }
-    [data-testid="stMetricLabel"] { font-size: 14px; color: #555; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    /* 1. Métricas: Valor sempre em destaque verde. O Label (título) agora se adapta ao tema automaticamente */
+    [data-testid="stMetricValue"] { 
+        font-size: 28px; 
+        color: #2ca02c; 
+        font-weight: bold; 
+    }
+
+    /* 2. Estrutura geral das abas: espaçamento e limpeza visual */
+    .stTabs [data-baseweb="tab-list"] { 
+        gap: 10px; 
+    }
+
+    /* 3. Abas inativas: Fundo transparente e sem bordas fixas para respeitar o Dark Mode */
     .stTabs [data-baseweb="tab"] { 
         height: 45px; 
-        background-color: #f8f9fa; 
+        background-color: transparent !important; 
         border-radius: 5px 5px 0 0; 
         padding: 10px 20px;
-        border: 1px solid #ddd;
+        border: none !important;
+        border-bottom: 2px solid transparent !important; /* Prepara o espaço para a transição */
     }
-    .stTabs [aria-selected="true"] { background-color: #2ca02c !important; color: white !important; }
+
+    /* 4. Aba ativa (selecionada): Mantém a identidade visual com o fundo verde e texto branco */
+    .stTabs [aria-selected="true"] { 
+        background-color: #2ca02c !important; 
+        color: white !important; 
+        border-bottom: 2px solid #2ca02c !important;
+    }
+
+    /* Opcional: Efeito hover sutil ao passar o mouse em abas inativas */
+    .stTabs [data-baseweb="tab"]:hover {
+        opacity: 0.8;
+    }
     </style>
     """, unsafe_allow_html=True)
 
