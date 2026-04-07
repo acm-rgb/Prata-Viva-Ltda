@@ -1,623 +1,434 @@
-#%%
-#v0.1.3
+# %%
+# v0.2.2 - Vistto Inteligência Financeira (Nomenclatura Limpa)
 import os
 import re
 import unicodedata
-
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 
 # ======================================================================================================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO DA PÁGINA E CSS
 # ======================================================================================================================
+st.set_page_config(layout="wide", page_icon="📈", page_title="Vistto - Inteligência de Negócios")
 
-st.set_page_config(layout="wide", page_icon="📈", page_title="Distribuidor Prata Viva Ltda")
-st.title("Vistto ETL - Dashboard de Performance")
+st.markdown("""
+    <style>
+    [data-testid="stMetricValue"] { font-size: 28px; color: #2ca02c; font-weight: bold; }
+    [data-testid="stMetricLabel"] { font-size: 14px; color: #555; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { 
+        height: 45px; 
+        background-color: #f8f9fa; 
+        border-radius: 5px 5px 0 0; 
+        padding: 10px 20px;
+        border: 1px solid #ddd;
+    }
+    .stTabs [aria-selected="true"] { background-color: #2ca02c !important; color: white !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ======================================================================================================================
 # CONFIGURAÇÃO DE CAMINHOS
 # ======================================================================================================================
-
 try:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DIRETORIO_BASE = os.path.dirname(os.path.abspath(__file__))
 except NameError:
-    BASE_DIR = os.getcwd()
+    DIRETORIO_BASE = os.getcwd()
 
-CAMINHO_VENDAS   = os.path.join(BASE_DIR, "vendas.csv")
-CAMINHO_CLIENTES = os.path.join(BASE_DIR, "clientes.csv")
-CAMINHO_DESPESAS = os.path.join(BASE_DIR, "despesas.csv")
-CAMINHO_PRODUTOS = os.path.join(BASE_DIR, "produtos.csv")
+CAMINHO_ARQUIVO_VENDAS = os.path.join(DIRETORIO_BASE, "vendas.csv")
+CAMINHO_ARQUIVO_CLIENTES = os.path.join(DIRETORIO_BASE, "clientes.csv")
+CAMINHO_ARQUIVO_DESPESAS = os.path.join(DIRETORIO_BASE, "despesas.csv")
+CAMINHO_ARQUIVO_PRODUTOS = os.path.join(DIRETORIO_BASE, "produtos.csv")
 
 # ======================================================================================================================
 # DICIONÁRIOS DE PADRONIZAÇÃO
 # ======================================================================================================================
-
-# Mapa de variações de nome de produto → nome padrão (igual a descricao_padrao em produtos.csv, sem acento)
-# Por que aqui e não no código: facilita manutenção quando o cliente manda novos dados com novas variações
-MAPA_NOMES_PRODUTO = {
-    "deterg. neutro 500ml"  : "detergente neutro 500ml",
+MAPA_PADRONIZACAO_PRODUTOS = {
+    "deterg. neutro 500ml": "detergente neutro 500ml",
     "agua sanitaria 1 litro": "agua sanitaria 1l",
-    "agua sanitaria 1l"     : "agua sanitaria 1l",
-    "sabao em po 1kg"       : "sabao em po 1kg",
-    "sabao po 1kg"          : "sabao em po 1kg",
-    "luva borracha m"       : "luva de borracha m",
-    "luva borracha media"   : "luva de borracha m",
-    "luva de borracha m"    : "luva de borracha m",
+    "agua sanitaria 1l": "agua sanitaria 1l",
+    "sabao em po 1kg": "sabao em po 1kg",
+    "sabao po 1kg": "sabao em po 1kg",
+    "luva borracha m": "luva de borracha m",
+    "luva borracha media": "luva de borracha m",
+    "luva de borracha m": "luva de borracha m",
     "desinfetante pinho 500ml": "desinfetante pinho 500ml",
-    "esponja de aco c/8"    : "esponja de aco c/8",
-    "esponja dupla face"    : "esponja dupla face",
-    "pano de chao 60x80"    : "pano de chao 60x80",
+    "esponja de aco c/8": "esponja de aco c/8",
+    "esponja dupla face": "esponja dupla face",
+    "pano de chao 60x80": "pano de chao 60x80",
 }
 
-# Mapa de variações de categoria de despesa → nome padronizado
-# Problema original: 'fornecedor', 'fornecedores', 'compras', 'compra' geravam 4 barras separadas no gráfico
-MAPA_CATEGORIAS_DESPESA = {
-    "fornecedor"      : "compras (mercadoria)",
-    "fornecedores"    : "compras (mercadoria)",
-    "compras"         : "compras (mercadoria)",
-    "compra"          : "compras (mercadoria)",
-    "salario"         : "salarios",
-    "salarios"        : "salarios",
-    "energia"         : "energia eletrica",
+MAPA_PADRONIZACAO_DESPESAS = {
+    "fornecedor": "compras (mercadoria)",
+    "fornecedores": "compras (mercadoria)",
+    "compras": "compras (mercadoria)",
+    "compra": "compras (mercadoria)",
+    "salario": "salarios",
+    "salarios": "salarios",
+    "energia": "energia eletrica",
     "energia eletrica": "energia eletrica",
-    "aluguel"         : "aluguel",
-    "devolucao"       : "devolucao / ajuste",
-    "contabilidade"   : "contabilidade",
-    "transporte"      : "transporte",
-    "manutencao"      : "manutencao",
-    "marketing"       : "marketing",
-    "impostos"        : "impostos",
+    "aluguel": "aluguel",
+    "devolucao": "devolucao / ajuste",
+    "contabilidade": "contabilidade",
+    "transporte": "transporte",
+    "manutencao": "manutencao",
+    "marketing": "marketing",
+    "impostos": "impostos",
 }
+
 
 # ======================================================================================================================
 # FUNÇÕES UTILITÁRIAS
 # ======================================================================================================================
-
-def ler_csv_seguro(caminho: str, dtype: dict) -> pd.DataFrame:
-    """
-    Lê CSV tentando UTF-8 primeiro, com fallback para latin-1.
-    Regra 3: dtype obrigatório. Regra 4: encoding com fallback.
-    """
+def ler_csv_com_fallback_de_codificacao(caminho, tipos_de_dados):
+    """Tenta ler em UTF-8, se falhar, usa Latin-1 para evitar quebra com caracteres especiais do Windows."""
     try:
-        return pd.read_csv(caminho, dtype=dtype, encoding="utf-8")
+        return pd.read_csv(caminho, dtype=tipos_de_dados, encoding="utf-8")
     except UnicodeDecodeError:
-        return pd.read_csv(caminho, dtype=dtype, encoding="latin-1")
+        return pd.read_csv(caminho, dtype=tipos_de_dados, encoding="latin-1")
 
 
-def limpar_moeda(val) -> float:
-    """
-    Converte representações monetárias brasileiras para float.
-    Cobre: 'R$ 3,50' → 3.5 | '12,90' → 12.9 | '-R$ 480,00' → -480.0 | 150 → 150.0
-    Retorna 0.0 para valores vazios ou não parseáveis.
-    Regra 5: valores monetários limpos antes de qualquer conversão.
-    """
-    if pd.isna(val) or val == "":
-        return 0.0
-    val_str = str(val)
-    # Mantém dígitos, vírgula, ponto e sinal de negativo
-    numeros = re.sub(r"[^\d,\.\-]", "", val_str)
-    if not numeros or numeros in ("-", ".", ","):
-        return 0.0
-    # Troca vírgula decimal por ponto
-    numeros = numeros.replace(",", ".")
-    # Mais de um ponto = separadores de milhar antes do último
-    if numeros.count(".") > 1:
-        partes = numeros.split(".")
-        numeros = "".join(partes[:-1]) + "." + partes[-1]
+def extrair_valor_monetario_limpo(valor_texto):
+    """Remove R$, espaços e converte vírgula para ponto."""
+    if pd.isna(valor_texto) or valor_texto == "": return 0.0
+    numeros_extraidos = re.sub(r"[^\d,\.\-]", "", str(valor_texto)).replace(",", ".")
+    if numeros_extraidos.count(".") > 1:
+        partes_numero = numeros_extraidos.split(".")
+        numeros_extraidos = "".join(partes_numero[:-1]) + "." + partes_numero[-1]
     try:
-        return float(numeros)
-    except ValueError:
+        return float(numeros_extraidos)
+    except:
         return 0.0
 
 
-def remover_acentos(texto: str) -> str:
-    """
-    Remove acentos para comparações seguras entre tabelas.
-    Ex.: 'Sabão em Pó' → 'Sabao em Po'
-    """
+def remover_acentuacao_e_caracteres_especiais(texto):
+    if not isinstance(texto, str): return ""
     return unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
 
 
-def normalizar_nome_produto(serie: pd.Series) -> pd.Series:
-    """
-    Normaliza nomes de produto para viabilizar o join com produtos.csv:
-    1. Lowercase + strip
-    2. Remove acentos
-    3. Consulta MAPA_NOMES_PRODUTO para resolver abreviações e variantes
-    """
-    base = serie.astype(str).str.lower().str.strip().apply(remover_acentos)
-    return base.map(lambda x: MAPA_NOMES_PRODUTO.get(x, x))
-
-
-def normalizar_texto(serie: pd.Series) -> pd.Series:
-    """Lowercase + strip + sem acentos. Uso geral em colunas categóricas."""
-    return serie.astype(str).str.lower().str.strip().apply(remover_acentos)
-
-
-# ======================================================================================================================
-# EXTRAÇÃO — LEITURA DOS CSVs
-# FIX 3: dtype definido para todas as colunas em todas as tabelas (Regra 3)
-# ======================================================================================================================
-
-@st.cache_data
-def carregar_dados_brutos() -> dict:
-    # Colunas monetárias e datas chegam como str — serão convertidas no ETL
-    dtype_vendas = {
-        "id_venda": str, "produto": str, "categoria": str,
-        "quantidade": str, "valor_unitario": str, "valor_total": str,
-        "forma_pagamento": str, "id_cliente": str,
-    }
-    dtype_clientes = {
-        "id_cliente": str, "razao_social": str, "contato": str,
-        "telefone": str, "email": str, "cidade": str,
-        "segmento": str, "canal_origem": str,
-    }
-    dtype_despesas = {
-        "id_despesa": str, "categoria": str, "descricao": str,
-        "fornecedor": str, "valor": str, "forma_pagamento": str,
-    }
-    dtype_produtos = {
-        "codigo": str, "descricao_padrao": str, "categoria": str,
-        "custo_unitario": str, "preco_venda": str, "margem_percentual": str,
-        "estoque_atual": str, "estoque_minimo": str,
-        "unidade": str, "fornecedor_principal": str,
-    }
-    return {
-        "vendas"  : ler_csv_seguro(CAMINHO_VENDAS,   dtype_vendas),
-        "clientes": ler_csv_seguro(CAMINHO_CLIENTES, dtype_clientes),
-        "despesas": ler_csv_seguro(CAMINHO_DESPESAS, dtype_despesas),
-        "produtos": ler_csv_seguro(CAMINHO_PRODUTOS, dtype_produtos),
-    }
-
-
-dados_brutos = carregar_dados_brutos()
+def padronizar_coluna_texto(serie_pandas):
+    """Converte para minúsculas, remove espaços extras e remove acentos."""
+    return serie_pandas.astype(str).str.lower().str.strip().apply(remover_acentuacao_e_caracteres_especiais)
 
 
 # ======================================================================================================================
 # TRANSFORMAÇÃO — ETL COMPLETO
 # ======================================================================================================================
-
 @st.cache_data
-def transformar_dados(colecao: dict):
-    """
-    Retorna: df_vendas, df_clientes, df_despesas, df_produtos
-    Regra 7: cada coluna com política explícita de nulos — sem fillna() genérico.
-    """
+def executar_pipeline_etl_vistto():
+    # 1. Definição estrita de tipos para evitar inferência errada
+    tipos_vendas = {"id_venda": str, "produto": str, "quantidade": str, "valor_total": str, "id_cliente": str}
+    tipos_clientes = {"id_cliente": str, "email": str, "telefone": str, "segmento": str, "canal_origem": str}
+    tipos_despesas = {"id_despesa": str, "categoria": str, "valor": str}
+    tipos_produtos = {"codigo": str, "descricao_padrao": str, "custo_unitario": str, "estoque_atual": str,
+                      "estoque_minimo": str}
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # VENDAS
-    # ------------------------------------------------------------------------------------------------------------------
-    df_v = colecao["vendas"].copy()
+    # 2. Carga dos Dados Brutos
+    df_vendas_bruto = ler_csv_com_fallback_de_codificacao(CAMINHO_ARQUIVO_VENDAS, tipos_vendas)
+    df_clientes_bruto = ler_csv_com_fallback_de_codificacao(CAMINHO_ARQUIVO_CLIENTES, tipos_clientes)
+    df_despesas_bruto = ler_csv_com_fallback_de_codificacao(CAMINHO_ARQUIVO_DESPESAS, tipos_despesas)
+    df_produtos_bruto = ler_csv_com_fallback_de_codificacao(CAMINHO_ARQUIVO_PRODUTOS, tipos_produtos)
 
-    # FIX 4: remoção de duplicatas antes de qualquer transformação
-    n_antes_dup = len(df_v)
-    df_v = df_v.drop_duplicates(
-        subset=["data", "produto", "quantidade", "valor_total", "id_cliente"]
+    # 3. Limpeza e Tratamento da Base de Vendas
+    df_vendas_limpo = df_vendas_bruto.copy()
+    df_vendas_limpo["data_formatada"] = pd.to_datetime(df_vendas_limpo["data"], dayfirst=True, errors="coerce")
+    df_vendas_limpo["valor_total_numerico"] = df_vendas_limpo["valor_total"].apply(extrair_valor_monetario_limpo)
+    df_vendas_limpo["quantidade_inteira"] = pd.to_numeric(df_vendas_limpo["quantidade"], errors="coerce").fillna(
+        0).astype(int)
+
+    # Removemos vendas zeradas ou canceladas
+    df_vendas_limpo = df_vendas_limpo[df_vendas_limpo["valor_total_numerico"] > 0].copy()
+
+    # Padroniza nome do produto consultando o dicionário Vistto
+    df_vendas_limpo["produto_padronizado"] = padronizar_coluna_texto(df_vendas_limpo["produto"]).map(
+        lambda nome: MAPA_PADRONIZACAO_PRODUTOS.get(nome, nome)
     )
 
-    # Regra 6: datas parseadas com tolerância a formatos mistos (BR e ISO)
-    df_v["data"] = pd.to_datetime(df_v["data"], dayfirst=True, errors="coerce")
+    # 4. Limpeza e Tratamento da Base de Produtos
+    df_produtos_limpo = df_produtos_bruto.copy()
+    df_produtos_limpo["custo_numerico"] = df_produtos_limpo["custo_unitario"].apply(extrair_valor_monetario_limpo)
+    df_produtos_limpo["estoque_atual_numerico"] = pd.to_numeric(df_produtos_limpo["estoque_atual"],
+                                                                errors="coerce").fillna(0).abs()
+    df_produtos_limpo["estoque_minimo_numerico"] = pd.to_numeric(df_produtos_limpo["estoque_minimo"],
+                                                                 errors="coerce").fillna(0).abs()
+    df_produtos_limpo["produto_padronizado"] = padronizar_coluna_texto(df_produtos_limpo["descricao_padrao"])
 
-    # Quantidade: numérico com política explícita para NaN → 0
-    df_v["quantidade"] = pd.to_numeric(df_v["quantidade"], errors="coerce").fillna(0).astype(int)
+    # 5. Limpeza e Deduplicação da Base de Clientes
+    df_clientes_limpo = df_clientes_bruto.copy()
+    df_clientes_limpo["telefone_apenas_numeros"] = df_clientes_limpo["telefone"].astype(str).str.replace(r"\D", "",
+                                                                                                         regex=True)
+    df_clientes_limpo = df_clientes_limpo.drop_duplicates(subset=["id_cliente"]).reset_index(drop=True)
 
-    # Regra 5: monetários limpos antes de qualquer operação numérica
-    df_v["valor_unitario_num"] = df_v["valor_unitario"].apply(limpar_moeda)
-    df_v["valor_total_num"]    = df_v["valor_total"].apply(limpar_moeda)
-
-    # Política explícita: remover linhas com valor zero (registros incompletos ou cancelamentos)
-    n_antes_zero = len(df_v)
-    df_v = df_v[df_v["valor_total_num"] > 0].copy()
-
-    # Normalização para join com produtos
-    df_v["produto_norm"] = normalizar_nome_produto(df_v["produto"])
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # PRODUTOS
-    # ------------------------------------------------------------------------------------------------------------------
-    df_p = colecao["produtos"].copy()
-
-    df_p["custo_num"]  = df_p["custo_unitario"].apply(limpar_moeda)
-    df_p["preco_num"]  = df_p["preco_venda"].apply(limpar_moeda)
-    df_p["margem_num"] = df_p["margem_percentual"].apply(limpar_moeda)
-
-    # Estoque: política explícita — registrar negativos ANTES de corrigir (não silenciar)
-    df_p["estoque_atual"]  = pd.to_numeric(df_p["estoque_atual"],  errors="coerce").fillna(0)
-    df_p["estoque_minimo"] = pd.to_numeric(df_p["estoque_minimo"], errors="coerce").fillna(0)
-    df_p["estoque_atual"]  = df_p["estoque_atual"].abs()
-    df_p["estoque_minimo"] = df_p["estoque_minimo"].abs()
-
-    df_p["produto_norm"] = normalizar_nome_produto(df_p["descricao_padrao"])
-    df_p = df_p.sort_values("margem_num", ascending=False)
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # CLIENTES
-    # ------------------------------------------------------------------------------------------------------------------
-    df_c = colecao["clientes"].copy()
-
-    df_c["data_cadastro"] = pd.to_datetime(df_c["data_cadastro"], dayfirst=True, errors="coerce")
-    df_c["canal_origem"]  = normalizar_texto(df_c["canal_origem"])
-    df_c["segmento"]      = normalizar_texto(df_c["segmento"])
-
-    # FIX 5: deduplicação de clientes — C001 e C011 são o mesmo (Mercadinho Bom Preço)
-    # Política: deduplicar por email quando disponível, depois por telefone normalizado
-    n_antes_dup_c = len(df_c)
-    df_c["tel_norm"] = df_c["telefone"].astype(str).str.replace(r"\D", "", regex=True)
-    df_c_com_email  = df_c[df_c["email"].notna() & (df_c["email"].str.strip() != "")].drop_duplicates(subset=["email"])
-    df_c_sem_email  = df_c[df_c["email"].isna() | (df_c["email"].str.strip() == "")].drop_duplicates(subset=["tel_norm"])
-    df_c = (
-        pd.concat([df_c_com_email, df_c_sem_email])
-        .drop_duplicates(subset=["id_cliente"])
-        .reset_index(drop=True)
+    # 6. Limpeza e Tratamento da Base de Despesas
+    df_despesas_limpo = df_despesas_bruto.copy()
+    df_despesas_limpo["data_formatada"] = pd.to_datetime(df_despesas_limpo["data"], dayfirst=True, errors="coerce")
+    df_despesas_limpo["valor_numerico"] = df_despesas_limpo["valor"].apply(extrair_valor_monetario_limpo)
+    df_despesas_limpo["categoria_padronizada"] = padronizar_coluna_texto(df_despesas_limpo["categoria"]).map(
+        lambda cat: MAPA_PADRONIZACAO_DESPESAS.get(cat, cat)
     )
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # DESPESAS
-    # ------------------------------------------------------------------------------------------------------------------
-    df_d = colecao["despesas"].copy()
-
-    df_d["data"]      = pd.to_datetime(df_d["data"], dayfirst=True, errors="coerce")
-    df_d["valor_num"] = df_d["valor"].apply(limpar_moeda)
-
-    # FIX 6: padronização de categorias com mapa de-para
-    # Problema original: 'fornecedor'/'fornecedores'/'compras'/'compra' = 4 barras para a mesma coisa
-    df_d["categoria_raw"] = normalizar_texto(df_d["categoria"]).replace("", "sem categoria")
-    df_d["categoria"]     = df_d["categoria_raw"].map(
-        lambda x: MAPA_CATEGORIAS_DESPESA.get(x, x)
-    )
-    cats_nao_mapeadas = df_d.loc[
-        ~df_d["categoria_raw"].isin(MAPA_CATEGORIAS_DESPESA), "categoria_raw"
-    ].unique().tolist()
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # JOINS
-    # ------------------------------------------------------------------------------------------------------------------
-
-    # Vendas ↔ Produtos
-    df_v = df_v.merge(
-        df_p[["produto_norm", "custo_num", "categoria", "codigo"]],
-        on="produto_norm", how="left", suffixes=("", "_prod"),
-    )
-    # FIX 7: custo NaN após join = produto não encontrado no cadastro → política explícita: NaN preservado
-    # NÃO usar fillna(0) — zeraria o custo e inflaria o lucro bruto silenciosamente
-    n_sem_join = int(df_v["custo_num"].isna().sum())
-
-    # Vendas ↔ Clientes
-    df_v = df_v.merge(
-        df_c[["id_cliente", "canal_origem", "cidade"]],
-        on="id_cliente", how="left",
+    # 7. Cruzamento de Dados (Joins Analíticos)
+    # Trazemos custo e categoria do cadastro de produtos para a tabela de vendas
+    df_vendas_limpo = df_vendas_limpo.merge(
+        df_produtos_limpo[["produto_padronizado", "custo_numerico", "categoria", "codigo"]],
+        on="produto_padronizado",
+        how="left"
     )
 
-    # Custo e lucro: NaN propagado onde custo não foi encontrado (comportamento correto)
-    df_v["custo_total_venda"] = df_v["quantidade"] * df_v["custo_num"]
-    df_v["lucro_bruto_venda"] = df_v["valor_total_num"] - df_v["custo_total_venda"]
+    # Trazemos dados de segmentação do cliente para a tabela de vendas
+    df_vendas_limpo = df_vendas_limpo.merge(
+        df_clientes_limpo[["id_cliente", "canal_origem", "segmento", "cidade"]],
+        on="id_cliente",
+        how="left"
+    )
 
-    return df_v, df_c, df_d, df_p
+    # Cálculo das métricas brutas financeiras por venda
+    df_vendas_limpo["custo_total_da_venda"] = df_vendas_limpo["quantidade_inteira"] * df_vendas_limpo["custo_numerico"]
+    df_vendas_limpo["lucro_bruto_da_venda"] = df_vendas_limpo["valor_total_numerico"] - df_vendas_limpo[
+        "custo_total_da_venda"]
 
-df_vendas, df_clientes, df_despesas, df_produtos = transformar_dados(dados_brutos)
+    # Retorna os DataFrames consolidados
+    return df_vendas_limpo, df_clientes_limpo, df_despesas_limpo, df_produtos_limpo
+
+
+# Execução do pipeline e atribuição às variáveis base do sistema
+df_vendas_base, df_clientes_base, df_despesas_base, df_produtos_base = executar_pipeline_etl_vistto()
 
 # ======================================================================================================================
-# CARGA / DASHBOARD — 4 ABAS
+# SIDEBAR — FILTROS GLOBAIS
 # ======================================================================================================================
+with st.sidebar:
+    st.title("🛡️ Vistto Intelligence")
+    st.markdown("---")
 
-aba1, aba2, aba3, aba4 = st.tabs([
-    "📊 Visão Executiva",
-    "🎯 Performance e Vistto",
-    "📦 Inteligência de Estoque",
-    "💸 Saúde Financeira",
+    # Criamos uma coluna de Mes/Ano para facilitar o filtro de competência
+    df_vendas_base["competencia_mes_ano"] = df_vendas_base["data_formatada"].dt.strftime("%m/%Y")
+
+    lista_de_competencias_disponiveis = sorted(df_vendas_base["competencia_mes_ano"].dropna().unique().tolist(),
+                                               reverse=True)
+
+    periodo_selecionado = st.selectbox("Período de Análise", ["Todo o Histórico"] + lista_de_competencias_disponiveis)
+
+# Aplicar filtros globais criando os DataFrames que irão de fato alimentar os gráficos
+if periodo_selecionado != "Todo o Histórico":
+    df_vendas_filtrado = df_vendas_base[df_vendas_base["competencia_mes_ano"] == periodo_selecionado].copy()
+
+    # Precisamos calcular o mês/ano das despesas em tempo real para o filtro
+    mascara_mes_despesa = df_despesas_base["data_formatada"].dt.strftime("%m/%Y") == periodo_selecionado
+    df_despesas_filtrado = df_despesas_base[mascara_mes_despesa].copy()
+else:
+    df_vendas_filtrado = df_vendas_base.copy()
+    df_despesas_filtrado = df_despesas_base.copy()
+
+# ======================================================================================================================
+# DASHBOARD — ESTRUTURA DE ABAS
+# ======================================================================================================================
+aba_executiva, aba_performance, aba_estoque, aba_financeiro = st.tabs([
+    "📊 Executivo",
+    "🎯 Performance",
+    "📦 Estoque",
+    "💸 Financeiro"
 ])
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ABA 1 — VISÃO EXECUTIVA
 # ----------------------------------------------------------------------------------------------------------------------
-with aba1:
-    st.header("Visão Executiva do Negócio")
+with aba_executiva:
+    st.subheader(f"Resumo Estratégico: {periodo_selecionado}")
 
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        coluna_kpi_1, coluna_kpi_2, coluna_kpi_3, coluna_kpi_4 = st.columns(4)
 
-    qtd_vendas         = len(df_vendas)
-    faturamento_total  = df_vendas["valor_total_num"].sum()
-    ticket_medio       = faturamento_total / qtd_vendas if qtd_vendas > 0 else 0
+        faturamento_total_periodo = df_vendas_filtrado["valor_total_numerico"].sum()
+        quantidade_total_vendas = len(df_vendas_filtrado)
+        ticket_medio_periodo = faturamento_total_periodo / quantidade_total_vendas if quantidade_total_vendas > 0 else 0
+        lucro_bruto_total_periodo = df_vendas_filtrado["lucro_bruto_da_venda"].sum()
 
-    col1.metric("Qtd. Vendas (Total Histórico)", f"{qtd_vendas}")
-    col2.metric("Faturamento Total (Histórico)", f"R$ {faturamento_total:,.2f}")
-    col3.metric("Ticket Médio (Histórico)",      f"R$ {ticket_medio:,.2f}")
+        coluna_kpi_1.metric("Faturamento", f"R$ {faturamento_total_periodo:,.2f}")
+        coluna_kpi_2.metric("Qtd. Vendas", f"{quantidade_total_vendas}")
+        coluna_kpi_3.metric("Ticket Médio", f"R$ {ticket_medio_periodo:,.2f}")
+        coluna_kpi_4.metric("Lucro Bruto", f"R$ {lucro_bruto_total_periodo:,.2f}")
 
-    st.markdown("---")
-
-    # FIX 8: Aba 1 usava barras VERTICAIS — regra de visualização exige barras HORIZONTAIS
-    df_cat = (
-        df_vendas.groupby("categoria", as_index=False)["valor_total_num"]
-        .sum()
-        .sort_values("valor_total_num", ascending=True)  # crescente → a maior fica no topo
-    )
-
-    fig_cat = px.bar(
-        df_cat,
-        x="valor_total_num",
-        y="categoria",
-        orientation="h",           # horizontal obrigatório
-        text_auto=True,
-        labels={"valor_total_num": "Faturamento (R$)", "categoria": ""},
-        color_discrete_sequence=["#1f77b4"],
-    )
-    fig_cat.update_layout(
-        title="Faturamento por Categoria (Visão Geral)",
-        title_x=0.5,
-        title_font=dict(size=20),
-        xaxis_title="",
-        yaxis_title="",
-    )
-    st.plotly_chart(fig_cat, use_container_width=True)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ABA 2 — PERFORMANCE E VISTTO (CAC + LTV adicionados)
-# ----------------------------------------------------------------------------------------------------------------------
-with aba2:
-    st.header("Performance de Vendas e Marketing")
-    st.markdown("Análise de eficiência de aquisição de clientes e rentabilidade da operação.")
-
-    # Cálculo de CAC
-    despesas_mkt  = df_despesas[df_despesas["categoria"] == "marketing"]["valor_num"].sum()
-    novos_clientes = len(df_clientes)
-    cac_geral      = despesas_mkt / novos_clientes if novos_clientes > 0 else 0
-
-    # Cálculo de Lucro Bruto (apenas linhas com custo conhecido)
-    lucro_bruto_total = df_vendas["lucro_bruto_venda"].dropna().sum()
-
-    # FIX 9: LTV calculado — ausente na versão original
-    # LTV estimado = faturamento total / clientes únicos com compra
-    # É uma estimativa de receita por cliente; com mais histórico, refinar por cohort
-    clientes_com_compra = df_vendas["id_cliente"].nunique()
-    ltv_estimado = faturamento_total / clientes_com_compra if clientes_com_compra > 0 else 0
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Investimento em Marketing",    f"R$ {despesas_mkt:,.2f}")
-    col2.metric(
-        "CAC (Custo por Cliente)",              f"R$ {cac_geral:,.2f}",
-        help="Investimento em marketing dividido pelo total de clientes cadastrados."
-    )
-    col3.metric(
-        "LTV Estimado (por cliente)",           f"R$ {ltv_estimado:,.2f}",
-        help="Faturamento total ÷ clientes únicos com compra. Estimativa — refinar com histórico maior."
-    )
-    col4.metric(
-        "Lucro Bruto (Vendas − Custo Mercadoria)", f"R$ {lucro_bruto_total:,.2f}",
-        help="Calculado apenas para produtos com custo cadastrado. Itens sem custo foram excluídos."
-    )
-
-    st.markdown("---")
-
-    col_g1, col_g2 = st.columns(2)
-
-    with col_g1:
-        df_canal = (
-            df_vendas.groupby("canal_origem", as_index=False)["valor_total_num"]
+    with st.container(border=True):
+        st.markdown("#### Ranking de Faturamento por Categoria de Produto")
+        df_faturamento_por_categoria = (
+            df_vendas_filtrado.groupby("categoria")["valor_total_numerico"]
             .sum()
-            .sort_values("valor_total_num", ascending=True)
-        )
-        fig_canal = px.bar(
-            df_canal,
-            x="valor_total_num", y="canal_origem",
-            orientation="h", text_auto=True,
-            title="Faturamento por Canal de Aquisição",
-            labels={"valor_total_num": "Faturamento (R$)", "canal_origem": "Canal"},
-            color_discrete_sequence=["#2ca02c"],
-        )
-        fig_canal.update_layout(
-            xaxis_title="", yaxis_title="", title_x=0.5,
-        )
-        st.plotly_chart(fig_canal, use_container_width=True)
-
-    with col_g2:
-        df_vc = df_vendas.merge(
-            df_clientes[["id_cliente", "segmento"]], on="id_cliente", how="left"
-        )
-        df_ticket_seg = (
-            df_vc.groupby("segmento")
-            .agg(faturamento=("valor_total_num", "sum"), qtd_vendas=("id_venda", "nunique"))
             .reset_index()
+            .sort_values("valor_total_numerico")
         )
-        df_ticket_seg["ticket_medio"] = (
-            df_ticket_seg["faturamento"] / df_ticket_seg["qtd_vendas"].replace(0, 1)
+        grafico_faturamento_categoria = px.bar(
+            df_faturamento_por_categoria,
+            x="valor_total_numerico",
+            y="categoria",
+            orientation="h",
+            text_auto=".2s",
+            color_discrete_sequence=["#2ca02c"]
         )
-        df_ticket_seg = df_ticket_seg.sort_values("ticket_medio", ascending=True)
+        st.plotly_chart(grafico_faturamento_categoria, use_container_width=True)
 
-        fig_ticket = px.bar(
-            df_ticket_seg,
-            x="ticket_medio", y="segmento",
-            orientation="h", text_auto=True,
-            title="Ticket Médio por Segmento",
-            labels={"ticket_medio": "Ticket Médio (R$)", "segmento": "Segmento"},
-            color_discrete_sequence=["#ff7f0e"],
-        )
-        fig_ticket.update_layout(
-            xaxis_title="", yaxis_title="", title_x=0.5,
-        )
-        st.plotly_chart(fig_ticket, use_container_width=True)
+# ----------------------------------------------------------------------------------------------------------------------
+# ABA 2 — PERFORMANCE (CAC / LTV)
+# ----------------------------------------------------------------------------------------------------------------------
+with aba_performance:
+    st.subheader("Eficiência de Aquisição e Valor do Cliente")
 
+    with st.container(border=True):
+        coluna_metrica_1, coluna_metrica_2, coluna_metrica_3 = st.columns(3)
+
+        investimento_marketing_periodo = \
+        df_despesas_filtrado[df_despesas_filtrado["categoria_padronizada"] == "marketing"]["valor_numerico"].sum()
+        total_clientes_base = df_clientes_base.shape[0]
+        custo_aquisicao_cliente = investimento_marketing_periodo / total_clientes_base if total_clientes_base > 0 else 0
+
+        clientes_unicos_com_compra = df_vendas_filtrado["id_cliente"].nunique()
+        lifetime_value_estimado = faturamento_total_periodo / clientes_unicos_com_compra if clientes_unicos_com_compra > 0 else 0
+
+        coluna_metrica_1.metric("Investimento Marketing", f"R$ {investimento_marketing_periodo:,.2f}")
+        coluna_metrica_2.metric("CAC Geral Estimado", f"R$ {custo_aquisicao_cliente:,.2f}")
+        coluna_metrica_3.metric("LTV Médio", f"R$ {lifetime_value_estimado:,.2f}")
+
+    coluna_grafico_esquerda, coluna_grafico_direita = st.columns(2)
+
+    with coluna_grafico_esquerda:
+        with st.container(border=True):
+            df_faturamento_por_canal = (
+                df_vendas_filtrado.groupby("canal_origem")["valor_total_numerico"]
+                .sum()
+                .reset_index()
+                .sort_values("valor_total_numerico")
+            )
+            grafico_canal = px.bar(
+                df_faturamento_por_canal,
+                x="valor_total_numerico",
+                y="canal_origem",
+                orientation="h",
+                title="Faturamento por Canal de Origem"
+            )
+            st.plotly_chart(grafico_canal, use_container_width=True)
+
+    with coluna_grafico_direita:
+        with st.container(border=True):
+            df_ticket_por_segmento = (
+                df_vendas_filtrado.groupby("segmento")["valor_total_numerico"]
+                .mean()
+                .reset_index()
+                .sort_values("valor_total_numerico")
+            )
+            grafico_segmento = px.bar(
+                df_ticket_por_segmento,
+                x="valor_total_numerico",
+                y="segmento",
+                orientation="h",
+                title="Ticket Médio por Segmento de Cliente"
+            )
+            st.plotly_chart(grafico_segmento, use_container_width=True)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ABA 3 — INTELIGÊNCIA DE ESTOQUE
 # ----------------------------------------------------------------------------------------------------------------------
-with aba3:
-    st.header("Gestão e Alertas de Estoque")
-    st.markdown("Monitoramento de inventário, alertas de reposição e análise de capital imobilizado.")
+with aba_estoque:
+    st.subheader("Análise de Inventário e Capital Imobilizado")
 
-    df_produtos["valor_imobilizado"] = df_produtos["estoque_atual"] * df_produtos["custo_num"]
-    capital_imobilizado = df_produtos["valor_imobilizado"].sum()
+    # Criamos um DataFrame específico para análise da aba de estoque
+    df_analise_estoque = df_produtos_base.copy()
+    df_analise_estoque["valor_total_imobilizado"] = df_analise_estoque["estoque_atual_numerico"] * df_analise_estoque[
+        "custo_numerico"]
 
-    df_ruptura      = df_produtos[df_produtos["estoque_atual"] <= df_produtos["estoque_minimo"]]
-    qtd_ruptura     = len(df_ruptura)
+    montante_total_imobilizado = df_analise_estoque["valor_total_imobilizado"].sum()
+    df_produtos_em_ruptura = df_analise_estoque[
+        df_analise_estoque["estoque_atual_numerico"] <= df_analise_estoque["estoque_minimo_numerico"]]
+    quantidade_itens_ruptura = len(df_produtos_em_ruptura)
 
-    col_e1, col_e2 = st.columns(2)
-    col_e1.metric(
-        "Capital Imobilizado em Estoque", f"R$ {capital_imobilizado:,.2f}",
-        help="Custo total de todas as mercadorias armazenadas."
+    coluna_estoque_1, coluna_estoque_2 = st.columns(2)
+    coluna_estoque_1.metric("Capital Imobilizado", f"R$ {montante_total_imobilizado:,.2f}")
+    coluna_estoque_2.metric(
+        "Alertas de Reposição Necessária",
+        f"{quantidade_itens_ruptura} itens",
+        delta=f"{quantidade_itens_ruptura} críticos",
+        delta_color="inverse"
     )
-    col_e2.metric(
-        "Alertas de Reposição (Ruptura)", f"{qtd_ruptura} itens",
-        delta="- Ação Necessária" if qtd_ruptura > 0 else "Estoque Seguro",
-        delta_color="inverse" if qtd_ruptura > 0 else "normal",
-    )
 
-    st.markdown("---")
-
-    if qtd_ruptura > 0:
-        st.error(
-            f"🚨 **Atenção:** {qtd_ruptura} produto(s) no estoque mínimo ou abaixo. "
-            "Emita pedido de compra para os fornecedores abaixo."
+    if not df_produtos_em_ruptura.empty:
+        st.error("🚨 Atenção: Identificamos produtos abaixo da margem de segurança do estoque mínimo!")
+        st.dataframe(
+            df_produtos_em_ruptura[["codigo", "descricao_padrao", "estoque_atual_numerico", "estoque_minimo_numerico"]],
+            use_container_width=True,
+            hide_index=True
         )
-        tabela_ruptura = df_ruptura[[
-            "codigo", "descricao_padrao", "fornecedor_principal",
-            "estoque_atual", "estoque_minimo", "custo_num",
-        ]].copy()
-        tabela_ruptura.columns = [
-            "Cód.", "Produto", "Fornecedor",
-            "Estoque Atual", "Mínimo Permitido", "Custo Ref. (R$)",
-        ]
-        st.dataframe(tabela_ruptura, use_container_width=True, hide_index=True)
-    else:
-        st.success("✅ **Estoque saudável!** Nenhum produto abaixo da margem de segurança.")
 
-    st.markdown("---")
-    st.subheader("Matriz de Estoque: Capital Imobilizado vs. Margem de Lucro")
-
-    fig_matriz = px.scatter(
-        df_produtos,
-        x="margem_num",
-        y="valor_imobilizado",
-        size="estoque_atual",
-        color="categoria",
-        hover_name="descricao_padrao",
-        title="Onde está o dinheiro do estoque? (Tamanho = Qtd. Armazenada)",
-        labels={
-            "margem_num"       : "Margem de Lucro (%)",
-            "valor_imobilizado": "Capital Imobilizado (R$)",
-            "categoria"        : "Categoria",
-            "estoque_atual"    : "Qtd. em Estoque",
-        },
-        size_max=40,
-    )
-    fig_matriz.update_layout(
-        title_x=0.5,
-    )
-    st.plotly_chart(fig_matriz, use_container_width=True)
-
+    with st.container(border=True):
+        grafico_matriz_estoque = px.scatter(
+            df_analise_estoque,
+            x="custo_numerico",
+            y="valor_total_imobilizado",
+            size="estoque_atual_numerico",
+            color="categoria",
+            hover_name="descricao_padrao",
+            title="Matriz de Avaliação do Estoque"
+        )
+        st.plotly_chart(grafico_matriz_estoque, use_container_width=True)
 
 # ----------------------------------------------------------------------------------------------------------------------
-# ABA 4 — SAÚDE FINANCEIRA E FLUXO DE CAIXA
+# ABA 4 — SAÚDE FINANCEIRA
 # ----------------------------------------------------------------------------------------------------------------------
-with aba4:
-    # Prepara coluna Mês/Ano antes do layout
-    df_vendas["mes_ano"]   = df_vendas["data"].dt.strftime("%m/%Y")
-    df_despesas["mes_ano"] = df_despesas["data"].dt.strftime("%m/%Y")
+with aba_financeiro:
+    st.subheader("Fluxo de Caixa e Custos Operacionais")
 
-    meses_disponiveis = sorted(list(
-        set(df_vendas["mes_ano"].dropna().unique()) |
-        set(df_despesas["mes_ano"].dropna().unique())
-    ))
-    opcoes_filtro = ["Visão Geral (Todos os Meses)"] + meses_disponiveis
+    despesas_totais_periodo = df_despesas_filtrado["valor_numerico"].sum()
+    saldo_operacional_periodo = faturamento_total_periodo - despesas_totais_periodo
 
-    col_titulo, col_filtro = st.columns([7, 3])
-
-    with col_filtro:
-        mes_selecionado = st.selectbox("Selecione o Período", opcoes_filtro, index=0)
-
-    with col_titulo:
-        titulo_periodo = (
-            "Panorama Histórico"
-            if mes_selecionado == "Visão Geral (Todos os Meses)"
-            else mes_selecionado
+    with st.container(border=True):
+        coluna_fin_1, coluna_fin_2, coluna_fin_3 = st.columns(3)
+        coluna_fin_1.metric("Total de Entradas (Vendas)", f"R$ {faturamento_total_periodo:,.2f}")
+        coluna_fin_2.metric("Total de Saídas (Despesas)", f"R$ {despesas_totais_periodo:,.2f}")
+        coluna_fin_3.metric(
+            "Saldo Operacional (EBITDA Aproximado)",
+            f"R$ {saldo_operacional_periodo:,.2f}",
+            delta="Positivo" if saldo_operacional_periodo > 0 else "Negativo"
         )
-        st.header(f"Saúde Financeira ({titulo_periodo})")
-        st.markdown("Acompanhamento de entradas, saídas e custos operacionais no período.")
 
-    st.markdown("---")
-
-    # Filtro condicional
-    if mes_selecionado != "Visão Geral (Todos os Meses)":
-        df_v_f = df_vendas[df_vendas["mes_ano"] == mes_selecionado]
-        df_d_f = df_despesas[df_despesas["mes_ano"] == mes_selecionado]
-    else:
-        df_v_f = df_vendas
-        df_d_f = df_despesas
-
-    faturamento_periodo = df_v_f["valor_total_num"].sum()
-    despesas_periodo    = df_d_f["valor_num"].sum()
-    saldo_operacional   = faturamento_periodo - despesas_periodo
-
-    col_f1, col_f2, col_f3 = st.columns(3)
-    col_f1.metric("Faturamento", f"R$ {faturamento_periodo:,.2f}")
-    col_f2.metric("Despesas",    f"R$ {despesas_periodo:,.2f}")
-    col_f3.metric(
-        "Resultado",             f"R$ {saldo_operacional:,.2f}",
-        delta="Lucro" if saldo_operacional >= 0 else "Déficit",
-        delta_color="normal" if saldo_operacional >= 0 else "inverse",
-    )
-
-    st.markdown("---")
-
-    # Fluxo diário
-    df_entradas = df_v_f.groupby("data", as_index=False)["valor_total_num"].sum()
-    df_entradas["Tipo"] = "Entrada (Vendas)"
-    df_entradas.rename(columns={"valor_total_num": "Valor (R$)"}, inplace=True)
-
-    df_saidas = df_d_f.groupby("data", as_index=False)["valor_num"].sum()
-    df_saidas["Tipo"] = "Saída (Despesas)"
-    df_saidas.rename(columns={"valor_num": "Valor (R$)"}, inplace=True)
-
-    df_fluxo = pd.concat([df_entradas, df_saidas]).sort_values("data")
-
-    col_fluxo, col_desp = st.columns([7, 3])
-
-    with col_fluxo:
-        st.subheader("Movimentação Diária")
-        df_fluxo_plot = df_fluxo.dropna(subset=["data"])
-
-        if not df_fluxo_plot.empty:
-            fig_fluxo = px.bar(
-                df_fluxo_plot,
-                x="data", y="Valor (R$)",
-                color="Tipo", barmode="group",
-                color_discrete_map={
-                    "Entrada (Vendas)": "#2ca02c",
-                    "Saída (Despesas)": "#d62728",
-                },
-                labels={"data": ""},
-            )
-            fig_fluxo.update_layout(
-                xaxis=dict(tickformat="%d/%m\n%Y"),
-                legend_title_text="",
-            )
-            st.plotly_chart(fig_fluxo, use_container_width=True)
-        else:
-            st.info("Não há movimentações financeiras registradas neste período.")
-
-    with col_desp:
-        st.subheader("Ranking de Custos")
-        df_rank = (
-            df_d_f.groupby("categoria", as_index=False)["valor_num"]
+    with st.container(border=True):
+        # Agrupamento diário para o gráfico de fluxo de caixa
+        df_entradas_diarias = (
+            df_vendas_filtrado.groupby(df_vendas_filtrado["data_formatada"].dt.date)["valor_total_numerico"]
             .sum()
-            .query("valor_num > 0")
-            .sort_values("valor_num", ascending=True)
+            .reset_index(name="valor_transacionado")
         )
+        df_entradas_diarias["natureza_movimentacao"] = "Entrada"
 
-        if not df_rank.empty:
-            fig_rank = px.bar(
-                df_rank,
-                x="valor_num", y="categoria",
-                orientation="h", text_auto=True,
-                color_discrete_sequence=["#d62728"],
-                labels={"valor_num": "Valor (R$)", "categoria": ""},
-            )
-            fig_rank.update_layout(
-                xaxis_title="", yaxis_title="",
-                xaxis=dict(showticklabels=False),
-            )
-            st.plotly_chart(fig_rank, use_container_width=True)
-        else:
-            st.info("Não há despesas lançadas neste período.")
+        df_saidas_diarias = (
+            df_despesas_filtrado.groupby(df_despesas_filtrado["data_formatada"].dt.date)["valor_numerico"]
+            .sum()
+            .reset_index(name="valor_transacionado")
+        )
+        df_saidas_diarias["natureza_movimentacao"] = "Saída"
+
+        df_fluxo_caixa_diario = pd.concat([df_entradas_diarias, df_saidas_diarias])
+
+        grafico_fluxo_diario = px.line(
+            df_fluxo_caixa_diario,
+            x="data_formatada",
+            y="valor_transacionado",
+            color="natureza_movimentacao",
+            title="Evolução Diária do Caixa"
+        )
+        st.plotly_chart(grafico_fluxo_diario, use_container_width=True)
+
+    with st.container(border=True):
+        df_ranking_despesas = (
+            df_despesas_filtrado.groupby("categoria_padronizada")["valor_numerico"]
+            .sum()
+            .reset_index()
+            .sort_values("valor_numerico")
+        )
+        grafico_ranking_despesas = px.bar(
+            df_ranking_despesas,
+            x="valor_numerico",
+            y="categoria_padronizada",
+            orientation="h",
+            title="Maiores Centros de Custo (Curva ABC de Despesas)",
+            color_discrete_sequence=["#d62728"]
+        )
+        st.plotly_chart(grafico_ranking_despesas, use_container_width=True)
