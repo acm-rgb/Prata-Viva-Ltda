@@ -173,7 +173,8 @@ def executar_pipeline_etl_vistto():
     df_vendas_limpo = df_vendas_limpo.merge(
         df_produtos_limpo[["produto_padronizado", "custo_numerico", "categoria", "codigo"]],
         on="produto_padronizado",
-        how="left"
+        how="left",
+        suffixes=("", "_do_produto")
     )
 
     # Trazemos dados de segmentação do cliente para a tabela de vendas
